@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Expense Analysis</title>
+</head>
+<body>
+    <h1>Expense Analysis</h1>
+    
+    <p>Total Income: {{ analysis.total_income }}</p>
+    <p>Total Expense: {{ analysis.total_expense }}</p>
+    <p>Balance: {{ analysis.balance }}</p>
+    <p>Status: {{ analysis.status }}</p>
+
+    <h3>Category-wise Expense Distribution</h3>
+    <img src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
+
+    <p>CSV Uploaded: <a href="{{ file_url }}" target="_blank">{{ file_url }}</a></p>
+</body>
+</html>
