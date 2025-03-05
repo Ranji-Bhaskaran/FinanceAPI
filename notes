@@ -1,0 +1,33 @@
+lambda code for api 
+
+
+import json
+
+def lambda_handler(event, context):
+    try:
+        # Handle both proxy and non-proxy cases
+        body = event if "body" not in event else json.loads(event["body"])
+
+        total_amount_spent = float(body.get("total_amount_spent", 0))
+        total_amount_target = float(body.get("total_amount_target", 0))
+
+        # Calculate savings or overspent
+        result = total_amount_target - total_amount_spent
+        message = "Savings" if result >= 0 else "Overspent"
+
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "result": round(result, 2),  
+                "message": f"{message}: {round(abs(result), 2)}"
+            }),
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        }
+
+    except Exception as e:
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": f"Internal Server Error: {str(e)}"})
+        }

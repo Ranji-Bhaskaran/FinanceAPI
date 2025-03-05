@@ -18,7 +18,7 @@ AWS_S3_REGION_NAME = "eu-west-1"
 
 # No need for access keys in Cloud9
 AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com"
-AWS_MEDIA_LOCATION = "uploads"
+AWS_MEDIA_LOCATION = "upload"
 
 MEDIA_URL = f"https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_MEDIA_LOCATION}/"
 MEDIA_ROOT = f"/mnt/{AWS_MEDIA_LOCATION}/"  # Local Cloud9 storage (optional)
