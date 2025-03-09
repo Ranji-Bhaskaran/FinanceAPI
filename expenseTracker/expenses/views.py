@@ -4,6 +4,7 @@ import boto3
 import json
 import io
 import base64
+import requests
 import pandas as pd
 import matplotlib.pyplot as plt
 from django.shortcuts import render, redirect
@@ -50,11 +51,15 @@ def analyze_expenses(file_path):
     """Reads CSV, calculates totals, and generates graphs."""
     try:
         df = pd.read_csv(file_path)
-        df["Amount"] = pd.to_numeric(df["Amount"], errors="coerce")
+        print("CSV Loaded Data:\n", df.head())  # Debugging Step
+
+        df["Amount"] = pd.to_numeric(df["Converted Amount (EUR)"], errors="coerce")
 
         total_income = df[df["Transaction Type"] == "Income"]["Amount"].sum()
         total_expense = df[df["Transaction Type"] == "Expense"]["Amount"].sum()
         balance = total_income - total_expense
+
+        print(f"Total Income: {total_income}, Total Expense: {total_expense}, Balance: {balance}")  # Debugging Step
 
         category_expenses = df[df["Transaction Type"] == "Expense"].groupby("Category")["Amount"].sum()
 
@@ -79,16 +84,32 @@ def analyze_expenses(file_path):
             "chart": image_base64
         }
     except Exception as e:
+        print(f"Error in analyze_expenses: {e}")  # Debugging Step
         return {"error": str(e)}
+
 
 # ------------------------- Process Expense Inputs & Store CSV -------------------------
 
+def convert_currency(amount, from_currency, to_currency="EUR"):
+    """Calls external API to convert currency."""
+    api_url = "https://2430zel9za.execute-api.eu-west-1.amazonaws.com/prod/convert"
+    payload = {"amount": amount, "from_currency": from_currency, "to_currency": to_currency}
+    headers = {"Content-Type": "application/json"}
+
+    try:
+        response = requests.post(api_url, json=payload, headers=headers, timeout=10)
+        response_data = response.json()
+        return response_data.get("converted_amount", amount)  # Default to original if API fails
+    except Exception as e:
+        print(f"Currency Conversion Error: {e}")
+        return amount  # Return original amount in case of failure
+
 def process_inputs(request):
-    """Processes user inputs, saves data in DB, analyzes CSV, and uploads to S3."""
+    """Processes user inputs, saves data in DB, converts all currencies to EUR, analyzes CSV, and uploads to S3."""
     if request.method == "POST":
         try:
             user_id = request.POST.get("user_id")
-            currency = request.POST.get("currency")
+            currency = request.POST.get("currency", "EUR")  # Default to EUR if missing
             amounts = request.POST.getlist("amount[]")
             categories = request.POST.getlist("category[]")
             transaction_types = request.POST.getlist("transaction_type[]")
@@ -99,20 +120,23 @@ def process_inputs(request):
 
             with open(file_path, "w", newline="") as file:
                 writer = csv.writer(file)
-                writer.writerow(["User ID", "Currency", "Amount", "Category", "Transaction Type", "Payment Method", "Timestamp"])
+                writer.writerow(["User ID", "Original Currency", "Original Amount", "Converted Amount (EUR)", "Category", "Transaction Type", "Payment Method", "Timestamp"])
                 
                 for i in range(len(amounts)):
+                    original_amount = float(amounts[i])
+                    converted_amount = convert_currency(original_amount, currency, "EUR")  # Convert all to EUR
+
                     Expense.objects.create(
                         user_id=user_id,
                         transaction_id=f"txn_{now().strftime('%Y%m%d%H%M%S')}_{i}",
-                        amount=amounts[i],
-                        currency=currency,
+                        amount=converted_amount,  # Store only the converted amount in the DB
+                        currency="EUR",  # Default currency to EUR in DB
                         transaction_type=transaction_types[i],
                         category=categories[i],
                         timestamp=now(),
                         payment_method=payment_methods[i],
                     )
-                    writer.writerow([user_id, currency, amounts[i], categories[i], transaction_types[i], payment_methods[i], now()])
+                    writer.writerow([user_id, currency, original_amount, converted_amount, categories[i], transaction_types[i], payment_methods[i], now()])
 
             analysis = analyze_expenses(file_path)
             s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, f"upload/{filename}")
