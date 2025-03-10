@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>Upload Expenses</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/upload.css' %}">
     <script>
         function addExpenseField() {
             let container = document.getElementById("expenses-container");
