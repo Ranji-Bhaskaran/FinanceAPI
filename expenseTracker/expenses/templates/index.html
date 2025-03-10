@@ -1,11 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Smart Expense & Budgeting API</title>
+    <title>Finance Expense API</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
-    <h1>Welcome to Smart Expense & Budgeting API</h1>
-    <p>Upload your transaction details for budgeting analysis.</p>
-    <a href="{% url 'upload' %}">Go to Upload</a>
+    <div class="container">
+        <div class="card">
+            <h1>💸 Smart Expense & Budgeting API</h1>
+            <p>Effortlessly upload your transaction details for comprehensive budgeting analysis and insights.</p>
+            <a href="{% url 'upload' %}" class="upload-button">📤 Upload Your Transactions</a>
+        </div>
+    </div>
 </body>
 </html>
