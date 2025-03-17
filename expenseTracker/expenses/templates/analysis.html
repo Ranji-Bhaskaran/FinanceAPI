@@ -1,21 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Analysis</title>
     {% load static %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/analysis.css' %}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
-<body>
-    <h1>Expense Analysis</h1>
-    
-    <p><strong>Total Income:</strong> {{ analysis.total_income }} EUR</p>
-    <p><strong>Total Expense (Converted to EUR):</strong> {{ analysis.total_expense }} EUR</p>
-    <p><strong>Balance:</strong> {{ analysis.balance }} EUR</p>
-    <p><strong>Status:</strong> {{ analysis.status }}</p>
+<body class="bg-light">
 
-    <h3>Category-wise Expense Distribution</h3>
-    <img src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
+    <div class="container mt-5">
+        <h1 class="text-center">Expense Analysis</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Total Income:</strong> {{ analysis.total_income }} EUR</p>
+                <p><strong>Total Expense (Converted to EUR):</strong> {{ analysis.total_expense }} EUR</p>
+                <p><strong>Balance:</strong> {{ analysis.balance }} EUR</p>
+                <p><strong>Status:</strong> 
+                    <span class="badge badge-{% if analysis.status == 'Saved' %}success{% else %}danger{% endif %}">
+                        {{ analysis.status }}
+                    </span>
+                </p>
+            </div>
 
-    <p><strong>CSV Uploaded:</strong> <a href="{{ file_url }}" target="_blank">{{ file_url }}</a></p>
+            <div class="col-md-6">
+                <h3>Category-wise Expense Distribution</h3>
+                <img class="img-fluid" src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <p><strong>CSV Uploaded:</strong> 
+                <a href="{{ file_url }}" target="_blank" class="btn btn-link">{{ file_url }}</a>
+            </p>
+        </div>
+
+        <hr>
+
+        <!-- Detailed Insights Button -->
+        <button id="get-insights-btn" class="btn btn-primary btn-lg">Get Detailed Insights</button>
+
+        <!-- Display API Response -->
+        <div id="detailed-insights" class="mt-4"></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $("#get-insights-btn").click(function() {
+                const total_expense = {{ analysis.total_expense }};
+                const target_expense = 1000;  // Adjust target as needed
+                const category_expenses = {{ analysis.category_expenses|safe }};
+                
+                $.ajax({
+                    url: "{% url 'get_detailed_insights' %}",
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    data: JSON.stringify({
+                        total_expense: total_expense,
+                        target_expense: target_expense,
+                        category_expenses: category_expenses
+                    }),
+                    contentType: "application/json",
+                    success: function(response) {
+                        const result = JSON.parse(response.body); // Parse the response body from string to object
+                        
+                        // Build the HTML content for the insights
+                        const alert = result.alert ? `<div class="alert alert-warning">${result.alert}</div>` : '';
+                        const suggestion = result.cut_suggestion ? `<p><strong>Suggestion:</strong> ${result.cut_suggestion}</p>` : '';
+                        const funny_tip = result.funny_tip ? `<p><em>${result.funny_tip}</em></p>` : '';
+
+                        const breakdown = result.category_breakdown ? `
+                            <h4>Category Breakdown</h4>
+                            <ul class="list-group">
+                                ${Object.keys(result.category_breakdown).map(cat => {
+                                    return `<li class="list-group-item d-flex justify-content-between">${cat} <span class="badge badge-info">${result.category_breakdown[cat]} EUR</span></li>`;
+                                }).join('')}
+                            </ul>
+                        ` : '';
+
+                        // Build final display content
+                        $("#detailed-insights").html(`
+                            <h3>Detailed Insights</h3>
+                            ${alert}
+                            <p><strong>Total Spent:</strong> ${result.total_spent} EUR</p>
+                            <p><strong>Total Target:</strong> ${result.total_target} EUR</p>
+                            <p><strong>Result:</strong> ${result.result} EUR</p>
+                            <p><strong>Message:</strong> ${result.message}</p>
+                            ${breakdown}
+                            ${suggestion}
+                            ${funny_tip}
+                        `);
+                    },
+                    error: function(error) {
+                        $("#detailed-insights").html("<div class='alert alert-danger'>Error fetching insights. Please try again.</div>");
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- Bootstrap JS (optional, for any interactivity needed) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
