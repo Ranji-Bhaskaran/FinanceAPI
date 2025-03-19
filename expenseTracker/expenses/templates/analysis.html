@@ -3,17 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Expense Analysis</title>
+    <title>Enhanced Expense Analysis</title>
     {% load static %}
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/analysis.css' %}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            background-color: #edf2f7;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            margin-top: 30px;
+            transition: transform 0.3s ease;
+        }
+        .container:hover {
+            transform: scale(1.02);
+        }
+        h1 {
+            color: #4A5568;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        h3 {
+            color: #2B6CB0;
+            margin-top: 30px;
+            text-align: center;
+        }
+        .badge-success {
+            background-color: #38a169;
+        }
+        .badge-danger {
+            background-color: #e53e3e;
+        }
+        .btn-primary {
+            background-color: #3182ce;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        .btn-primary:hover {
+            background-color: #2b6cb0;
+        }
+    </style>
 </head>
-<body class="bg-light">
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Expense Tracker</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{% url 'home' %}">Home</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
 
-    <div class="container mt-5">
-        <h1 class="text-center">Expense Analysis</h1>
-        
+    <div class="container">
+        <h1><i class="fas fa-chart-pie"></i> Expense Analysis</h1>
         <div class="row">
             <div class="col-md-6">
                 <p><strong>Total Income:</strong> {{ analysis.total_income }} EUR</p>
@@ -25,41 +85,33 @@
                     </span>
                 </p>
             </div>
-
             <div class="col-md-6">
-                <h3>Category-wise Expense Distribution</h3>
-                <img class="img-fluid" src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
+                <h3>Category-wise Distribution</h3>
+                <img class="img-fluid rounded border" src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
             </div>
         </div>
-
         <div class="mt-4">
             <p><strong>CSV Uploaded:</strong> 
-                <a href="{{ file_url }}" target="_blank" class="btn btn-link">{{ file_url }}</a>
+                <a href="{{ file_url }}" target="_blank" class="btn btn-link">View File</a>
             </p>
         </div>
-
         <hr>
-
-        <!-- Detailed Insights Button -->
-        <button id="get-insights-btn" class="btn btn-primary btn-lg">Get Detailed Insights</button>
-
-        <!-- Display API Response -->
-        <div id="detailed-insights" class="mt-4"></div>
+        <div class="text-center">
+            <button id="get-insights-btn" class="btn btn-primary btn-lg mb-4">Get Detailed Insights</button>
+        </div>
+        <div id="detailed-insights"></div>
     </div>
 
     <script>
         $(document).ready(function() {
             $("#get-insights-btn").click(function() {
                 const total_expense = {{ analysis.total_expense }};
-                const target_expense = 1000;  // Adjust target as needed
+                const target_expense = {{ analysis.total_income }};
                 const category_expenses = {{ analysis.category_expenses|safe }};
-                
                 $.ajax({
                     url: "{% url 'get_detailed_insights' %}",
                     method: "POST",
-                    headers: {
-                        "X-CSRFToken": "{{ csrf_token }}"
-                    },
+                    headers: { "X-CSRFToken": "{{ csrf_token }}" },
                     data: JSON.stringify({
                         total_expense: total_expense,
                         target_expense: target_expense,
@@ -67,33 +119,23 @@
                     }),
                     contentType: "application/json",
                     success: function(response) {
-                        const result = JSON.parse(response.body); // Parse the response body from string to object
-                        
-                        // Build the HTML content for the insights
+                        const result = JSON.parse(response.body);
                         const alert = result.alert ? `<div class="alert alert-warning">${result.alert}</div>` : '';
                         const suggestion = result.cut_suggestion ? `<p><strong>Suggestion:</strong> ${result.cut_suggestion}</p>` : '';
                         const funny_tip = result.funny_tip ? `<p><em>${result.funny_tip}</em></p>` : '';
-
-                        const breakdown = result.category_breakdown ? `
-                            <h4>Category Breakdown</h4>
-                            <ul class="list-group">
-                                ${Object.keys(result.category_breakdown).map(cat => {
-                                    return `<li class="list-group-item d-flex justify-content-between">${cat} <span class="badge badge-info">${result.category_breakdown[cat]} EUR</span></li>`;
-                                }).join('')}
-                            </ul>
-                        ` : '';
-
-                        // Build final display content
+                        const breakdown = result.category_breakdown ? `<h4>Category Breakdown</h4><ul class="list-group">${Object.keys(result.category_breakdown).map(cat => `<li class="list-group-item d-flex justify-content-between">${cat} <span class="badge bg-info">${result.category_breakdown[cat]} EUR</span></li>`).join('')}</ul>` : '';
                         $("#detailed-insights").html(`
-                            <h3>Detailed Insights</h3>
-                            ${alert}
-                            <p><strong>Total Spent:</strong> ${result.total_spent} EUR</p>
-                            <p><strong>Total Target:</strong> ${result.total_target} EUR</p>
-                            <p><strong>Result:</strong> ${result.result} EUR</p>
-                            <p><strong>Message:</strong> ${result.message}</p>
-                            ${breakdown}
-                            ${suggestion}
-                            ${funny_tip}
+                            <div class="mt-4">
+                                <h3>Detailed Insights</h3>
+                                ${alert}
+                                <p><strong>Total Spent:</strong> ${result.total_spent} EUR</p>
+                                <p><strong>Total Target:</strong> ${result.total_target} EUR</p>
+                                <p><strong>Result:</strong> ${result.result} EUR</p>
+                                <p><strong>Message:</strong> ${result.message}</p>
+                                ${breakdown}
+                                ${suggestion}
+                                ${funny_tip}
+                            </div>
                         `);
                     },
                     error: function(error) {
@@ -104,7 +146,6 @@
         });
     </script>
 
-    <!-- Bootstrap JS (optional, for any interactivity needed) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

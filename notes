@@ -1,25 +1,83 @@
 lambda code for api 
 
-
 import json
 
 def lambda_handler(event, context):
     try:
-        # Handle both proxy and non-proxy cases
+        # Parse JSON body (for both proxy and non-proxy integrations)
         body = event if "body" not in event else json.loads(event["body"])
 
+        # Extract user-provided total values
         total_amount_spent = float(body.get("total_amount_spent", 0))
         total_amount_target = float(body.get("total_amount_target", 0))
+        
+        # Extract optional expenses array
+        expenses = body.get("expenses", [])  # Expecting a list of {"category": "Food", "amount": 50}
+
+        # Validate inputs
+        if not isinstance(total_amount_spent, (int, float)) or not isinstance(total_amount_target, (int, float)):
+            return {
+                "statusCode": 400,
+                "body": json.dumps({"error": "Invalid input: total_amount_spent and total_amount_target must be numbers."}),
+                "headers": {"Content-Type": "application/json"}
+            }
 
         # Calculate savings or overspent
         result = total_amount_target - total_amount_spent
         message = "Savings" if result >= 0 else "Overspent"
 
+        # Process category breakdown if expenses are provided
+        category_breakdown = {}
+        for expense in expenses:
+            category = expense.get("category", "Uncategorized")
+            amount = float(expense.get("amount", 0))
+            category_breakdown[category] = category_breakdown.get(category, 0) + amount
+
+        # Budget alert system (customize threshold as needed)
+        budget_threshold = 0.8 * total_amount_target  # Alert if spending exceeds 80% of target
+        alert = None
+        if total_amount_spent > budget_threshold:
+            alert = f"Warning: You have exceeded 80% of your budget!"
+
+        # Suggest cutting down on the highest-spent category if over budget
+        cut_suggestion = None
+        funny_tip = None
+        if total_amount_spent > total_amount_target and category_breakdown:
+            excess_amount = total_amount_spent - total_amount_target  # How much we need to cut
+            highest_category = max(category_breakdown, key=category_breakdown.get)  # Find highest-spent category
+            highest_spent = category_breakdown[highest_category]
+
+            if highest_spent > 0:
+                cut_percentage = round((excess_amount / highest_spent) * 100, 2)
+                cut_suggestion = f"Reduce {highest_category} expenses by {cut_percentage}% ({round(excess_amount, 2)}) to stay within budget."
+
+                # Funny savings tips based on category
+                funny_tips = {
+                    "Food": "Try eating more home-cooked meals or fruits instead of fancy dinners. Bonus: Your wallet and stomach will both thank you!",
+                    "Transport": "Maybe it's time to take up cycling or walking instead of spending on cabs. Who needs Uber when you have legs?",
+                    "Entertainment": "Netflix is great, but have you tried reading? Books don’t charge you a monthly fee!",
+                    "Shopping": "Consider shopping in your own wardrobe—who knows, you might find ‘new’ clothes you forgot about!",
+                    "Coffee": "Maybe skip the fancy lattes and embrace the pure power of instant coffee. It builds character!",
+                    "Gaming": "Do you really need that new skin in the game? Your budget says no, but your heart says yes. Listen to your budget!",
+                    "Streaming": "Cancel one subscription and boom—instant savings! Do you even watch half of those shows?",
+                    "Uncategorized": "Seems like you're spending too much on 'mystery expenses.' Maybe it's time for some detective work on your finances!"
+                }
+
+                # Pick a funny tip based on highest category
+                funny_tip = funny_tips.get(highest_category, "Cutting down will help you save! But hey, budgeting is an art—make it fun!")
+
+        # Response
         return {
             "statusCode": 200,
             "body": json.dumps({
-                "result": round(result, 2),  
-                "message": f"{message}: {round(abs(result), 2)}"
+                "total_spent": round(total_amount_spent, 2),
+                "total_target": round(total_amount_target, 2),
+                "result": round(result, 2),
+                "message": f"{message}: {round(abs(result), 2)}",
+                "category_breakdown": category_breakdown,
+                "alert": alert,
+                "cut_suggestion": cut_suggestion,
+                "funny_tip": funny_tip
             }),
             "headers": {
                 "Content-Type": "application/json"
@@ -29,5 +87,144 @@ def lambda_handler(event, context):
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"error": f"Internal Server Error: {str(e)}"})
+            "body": json.dumps({"error": f"Internal Server Error: {str(e)}"}),
+            "headers": {"Content-Type": "application/json"}
         }
+
+
+
+
+-----------------------------------------------------------------------------------------------------------------
+
+s3 policy 
+
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowPublicAccessForLambda",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "s3:GetObject",
+                "s3:PutObject",
+                "s3:ListBucket"
+            ],
+            "Resource": [
+                "arn:aws:s3:::23271957-smart-expense-tracker",
+                "arn:aws:s3:::23271957-smart-expense-tracker/upload/*"
+            ]
+        }
+    ]
+}
+
+
+#analysis html -------------------------------------------------------------------------------
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Expense Analysis</title>
+    {% load static %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/analysis.css' %}">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body class="bg-light">
+
+    <div class="container mt-5">
+        <h1 class="text-center">Expense Analysis</h1>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Total Income:</strong> {{ analysis.total_income }} EUR</p>
+                <p><strong>Total Expense (Converted to EUR):</strong> {{ analysis.total_expense }} EUR</p>
+                <p><strong>Balance:</strong> {{ analysis.balance }} EUR</p>
+                <p><strong>Status:</strong> <span class="badge badge-{{ 'success' if analysis.status == 'Saved' else 'danger' }}">{{ analysis.status }}</span></p>
+            </div>
+
+            <div class="col-md-6">
+                <h3>Category-wise Expense Distribution</h3>
+                <img class="img-fluid" src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <p><strong>CSV Uploaded:</strong> 
+                <a href="{{ file_url }}" target="_blank" class="btn btn-link">{{ file_url }}</a>
+            </p>
+        </div>
+
+        <hr>
+
+        <!-- Detailed Insights Button -->
+        <button id="get-insights-btn" class="btn btn-primary btn-lg">Get Detailed Insights</button>
+
+        <!-- Display API Response -->
+        <div id="detailed-insights" class="mt-4"></div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $("#get-insights-btn").click(function() {
+                const total_expense = {{ analysis.total_expense }};
+                const target_expense = 1000;  // Adjust target as needed
+                const category_expenses = {{ analysis.category_expenses|safe }};
+                
+                $.ajax({
+                    url: "{% url 'get_detailed_insights' %}",
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    data: JSON.stringify({
+                        total_expense: total_expense,
+                        target_expense: target_expense,
+                        category_expenses: category_expenses
+                    }),
+                    contentType: "application/json",
+                    success: function(response) {
+                        const result = JSON.parse(response.body); // Parse the response body from string to object
+                        
+                        // Build the HTML content for the insights
+                        const alert = result.alert ? `<div class="alert alert-warning">${result.alert}</div>` : '';
+                        const suggestion = result.cut_suggestion ? `<p><strong>Suggestion:</strong> ${result.cut_suggestion}</p>` : '';
+                        const funny_tip = result.funny_tip ? `<p><em>${result.funny_tip}</em></p>` : '';
+
+                        const breakdown = result.category_breakdown ? `
+                            <h4>Category Breakdown</h4>
+                            <ul class="list-group">
+                                ${Object.keys(result.category_breakdown).map(cat => {
+                                    return `<li class="list-group-item d-flex justify-content-between">${cat} <span class="badge badge-info">${result.category_breakdown[cat]} EUR</span></li>`;
+                                }).join('')}
+                            </ul>
+                        ` : '';
+
+                        // Build final display content
+                        $("#detailed-insights").html(`
+                            <h3>Detailed Insights</h3>
+                            ${alert}
+                            <p><strong>Total Spent:</strong> ${result.total_spent} EUR</p>
+                            <p><strong>Total Target:</strong> ${result.total_target} EUR</p>
+                            <p><strong>Result:</strong> ${result.result} EUR</p>
+                            <p><strong>Message:</strong> ${result.message}</p>
+                            ${breakdown}
+                            ${suggestion}
+                            ${funny_tip}
+                        `);
+                    },
+                    error: function(error) {
+                        $("#detailed-insights").html("<div class='alert alert-danger'>Error fetching insights. Please try again.</div>");
+                    }
+                });
+            });
+        });
+    </script>
+
+    <!-- Bootstrap JS (optional, for any interactivity needed) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+
