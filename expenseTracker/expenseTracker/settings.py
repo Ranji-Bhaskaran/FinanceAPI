@@ -38,8 +38,8 @@ SECRET_KEY = 'django-insecure-fuf_-0gx+u24b$)frr+=)%is^+0^fz%jf4gv2f_cg#p6y+w)ic
 DEBUG = True
 
 # ALLOWED_HOSTS = ['3cc29e363b6347aa8d4a74be9d3b7cf8.vfs.cloud9.eu-west-1.amazonaws.com']
-ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['https://3cc29e363b6347aa8d4a74be9d3b7cf8.vfs.cloud9.eu-west-1.amazonaws.com']
+ALLOWED_HOSTS = ['x23271957expcheck2-env.eba-hp8mvu9y.eu-west-1.elasticbeanstalk.com', '3cc29e363b6347aa8d4a74be9d3b7cf8.vfs.cloud9.eu-west-1.amazonaws.com']
+CSRF_TRUSTED_ORIGINS = ['https://3cc29e363b6347aa8d4a74be9d3b7cf8.vfs.cloud9.eu-west-1.amazonaws.com', 'https://x23271957expcheck2-env.eba-hp8mvu9y.eu-west-1.elasticbeanstalk.com']
 
 
 # Application definition
