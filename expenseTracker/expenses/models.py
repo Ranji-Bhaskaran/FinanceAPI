@@ -1,6 +1,8 @@
+""" models.py """
 from django.db import models
 
 class Expense(models.Model):
+    """ class expense """
     user_id = models.CharField(max_length=50)
     transaction_id = models.CharField(max_length=50, unique=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)

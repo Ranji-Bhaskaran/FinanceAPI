@@ -52,18 +52,25 @@
         .btn-primary:hover {
             background-color: #2b6cb0;
         }
+        .spinner-border {
+            margin-top: 20px;
+            display: none;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
     </style>
 </head>
 <body>
     <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand" href="#">Expense Tracker</a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav">
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link active" aria-current="page" href="{% url 'home' %}">Home</a>
                     </li>
@@ -73,7 +80,7 @@
     </nav>
 
     <div class="container">
-        <h1><i class="fas fa-chart-pie"></i> Expense Analysis</h1>
+        <h1><i class="fas fa-chart-pie"></i> Enhanced Expense Analysis</h1>
         <div class="row">
             <div class="col-md-6">
                 <p><strong>Total Income:</strong> {{ analysis.total_income }} EUR</p>
@@ -85,29 +92,38 @@
                     </span>
                 </p>
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6 text-center">
                 <h3>Category-wise Distribution</h3>
                 <img class="img-fluid rounded border" src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
             </div>
         </div>
+        
         <div class="mt-4">
             <p><strong>CSV Uploaded:</strong> 
                 <a href="{{ file_url }}" target="_blank" class="btn btn-link">View File</a>
             </p>
         </div>
+        
         <hr>
+        
         <div class="text-center">
             <button id="get-insights-btn" class="btn btn-primary btn-lg mb-4">Get Detailed Insights</button>
+            <div class="spinner-border text-primary" role="status" id="loading-spinner">
+                <span class="visually-hidden">Loading...</span>
+            </div>
         </div>
+
         <div id="detailed-insights"></div>
     </div>
 
     <script>
         $(document).ready(function() {
             $("#get-insights-btn").click(function() {
+                $("#loading-spinner").show();  // Show spinner
                 const total_expense = {{ analysis.total_expense }};
                 const target_expense = {{ analysis.total_income }};
                 const category_expenses = {{ analysis.category_expenses|safe }};
+                
                 $.ajax({
                     url: "{% url 'get_detailed_insights' %}",
                     method: "POST",
@@ -119,26 +135,27 @@
                     }),
                     contentType: "application/json",
                     success: function(response) {
+                        $("#loading-spinner").hide();  // Hide spinner
                         const result = JSON.parse(response.body);
-                        const alert = result.alert ? `<div class="alert alert-warning">${result.alert}</div>` : '';
-                        const suggestion = result.cut_suggestion ? `<p><strong>Suggestion:</strong> ${result.cut_suggestion}</p>` : '';
-                        const funny_tip = result.funny_tip ? `<p><em>${result.funny_tip}</em></p>` : '';
-                        const breakdown = result.category_breakdown ? `<h4>Category Breakdown</h4><ul class="list-group">${Object.keys(result.category_breakdown).map(cat => `<li class="list-group-item d-flex justify-content-between">${cat} <span class="badge bg-info">${result.category_breakdown[cat]} EUR</span></li>`).join('')}</ul>` : '';
+                        const message = result.message || "Analysis completed successfully!";
+                        
                         $("#detailed-insights").html(`
                             <div class="mt-4">
-                                <h3>Detailed Insights</h3>
-                                ${alert}
+                                <div class="alert alert-success">${message}</div>
                                 <p><strong>Total Spent:</strong> ${result.total_spent} EUR</p>
                                 <p><strong>Total Target:</strong> ${result.total_target} EUR</p>
                                 <p><strong>Result:</strong> ${result.result} EUR</p>
-                                <p><strong>Message:</strong> ${result.message}</p>
-                                ${breakdown}
-                                ${suggestion}
-                                ${funny_tip}
+                                <p><strong>Suggestion:</strong> ${result.cut_suggestion || "No suggestions available"}</p>
+                                <p><em>${result.funny_tip || ""}</em></p>
                             </div>
                         `);
+                        
+                        $('html, body').animate({
+                            scrollTop: $("#detailed-insights").offset().top
+                        }, 1000);
                     },
                     error: function(error) {
+                        $("#loading-spinner").hide();  // Hide spinner
                         $("#detailed-insights").html("<div class='alert alert-danger'>Error fetching insights. Please try again.</div>");
                     }
                 });

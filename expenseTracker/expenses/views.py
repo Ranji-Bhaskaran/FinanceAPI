@@ -1,3 +1,4 @@
+"""views.py"""
 import csv
 import os
 import boto3
@@ -7,13 +8,15 @@ import base64
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
-from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render
+from django.http import JsonResponse
 from django.utils.timezone import now
 from django.conf import settings
 from rest_framework import viewsets
 from .models import Expense
 from .serializers import ExpenseSerializer
+from django.views.decorators.csrf import csrf_exempt
+from twilio.rest import Client
 
 # AWS S3 Client (IAM Role-based access)
 s3_client = boto3.client('s3', region_name=settings.AWS_S3_REGION_NAME)
@@ -28,16 +31,22 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 # ------------------------- Homepage View -------------------------
 
 def home_view(request):
+    """Renders the homepage view"""
     return render(request, "index.html")
 
 # ------------------------- Upload CSV to S3 -------------------------
 
 def upload_page(request):
+    """Handles file upload and saves to S3"""
     if request.method == "POST" and request.FILES.get('file'):
         file = request.FILES['file']
         file_key = f"upload/{file.name}"
         try:
-            s3_client.upload_fileobj(file, settings.AWS_STORAGE_BUCKET_NAME, file_key, ExtraArgs={'ACL': 'public-read'})
+            s3_client.upload_fileobj(
+                file,
+                settings.AWS_STORAGE_BUCKET_NAME,
+                file_key,
+                ExtraArgs={'ACL': 'public-read'})
             file_url = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{file_key}"
             return render(request, "upload.html", {"file_url": file_url})
         except Exception as e:
@@ -47,6 +56,7 @@ def upload_page(request):
 # ------------------------- Analyze Expenses from CSV -------------------------
 
 def analyze_expenses(file_path):
+    """Analyzes expenses from the uploaded CSV and generates a report"""
     try:
         df = pd.read_csv(file_path)
         df["Amount"] = pd.to_numeric(df["Converted Amount (EUR)"], errors="coerce")
@@ -82,8 +92,6 @@ def analyze_expenses(file_path):
 
 # ------------------------- Get Detailed Insights from API -------------------------
 
-from django.views.decorators.csrf import csrf_exempt
-
 @csrf_exempt
 def get_detailed_insights(request):
     """Handles the AJAX request to get detailed insights from the external API."""
@@ -117,6 +125,7 @@ def get_detailed_insights(request):
 # ------------------------- Process Expense Inputs & Store CSV -------------------------
 
 def process_inputs(request):
+    """Process expense inputs, generate CSV, and upload to S3"""
     if request.method == "POST":
         try:
             user_id = request.POST.get("user_id")
@@ -147,3 +156,20 @@ def process_inputs(request):
             return JsonResponse({"error": str(e)}, status=500)
     
     return JsonResponse({"error": "Invalid request method."}, status=400)
+
+def send_reminder(request):
+    """Sends a reminder message via Twilio API"""
+    try:
+        # Twilio credentials
+        account_sid = settings.TWILIO_ACCOUNT_SID
+        auth_token = settings.TWILIO_AUTH_TOKEN
+        client = Client(account_sid, auth_token)
+
+        message = client.messages.create(
+            body="Reminder: Check your recent expenses and budget!",
+            from_=settings.TWILIO_PHONE_NUMBER,
+            to=settings.MY_PHONE_NUMBER
+        )
+        return JsonResponse({"message": "Reminder sent successfully!"})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
