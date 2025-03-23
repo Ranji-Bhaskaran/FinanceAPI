@@ -52,6 +52,14 @@
         .btn-primary:hover {
             background-color: #2b6cb0;
         }
+        .btn-warning {
+            background-color: #f6ad55;
+            border: none;
+            transition: background-color 0.3s;
+        }
+        .btn-warning:hover {
+            background-color: #e07b37;
+        }
         .spinner-border {
             margin-top: 20px;
             display: none;
@@ -114,10 +122,19 @@
         </div>
 
         <div id="detailed-insights"></div>
+
+        <!-- Send Reminder Button -->
+        <div class="text-center mt-4">
+            <button id="send-reminder-btn" class="btn btn-warning btn-lg mb-4">Send Reminder</button>
+            <div class="spinner-border text-warning" role="status" id="reminder-spinner" style="display: none;">
+                <span class="visually-hidden">Sending Reminder...</span>
+            </div>
+        </div>
     </div>
 
     <script>
         $(document).ready(function() {
+            // Get Detailed Insights
             $("#get-insights-btn").click(function() {
                 $("#loading-spinner").show();  // Show spinner
                 const total_expense = {{ analysis.total_expense }};
@@ -146,7 +163,6 @@
                                 <p><strong>Total Target:</strong> ${result.total_target} EUR</p>
                                 <p><strong>Result:</strong> ${result.result} EUR</p>
                                 <p><strong>Suggestion:</strong> ${result.cut_suggestion || "No suggestions available"}</p>
-                                <p><em>${result.funny_tip || ""}</em></p>
                             </div>
                         `);
                         
@@ -157,6 +173,25 @@
                     error: function(error) {
                         $("#loading-spinner").hide();  // Hide spinner
                         $("#detailed-insights").html("<div class='alert alert-danger'>Error fetching insights. Please try again.</div>");
+                    }
+                });
+            });
+
+            // Send Reminder Button
+            $("#send-reminder-btn").click(function() {
+                $("#reminder-spinner").show();  // Show spinner
+
+                $.ajax({
+                    url: "{% url 'send_reminder' %}",
+                    method: "POST",
+                    headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                    success: function(response) {
+                        $("#reminder-spinner").hide();  // Hide spinner
+                        alert(response.message || "Reminder sent successfully!");
+                    },
+                    error: function(error) {
+                        $("#reminder-spinner").hide();  // Hide spinner
+                        alert("Error sending reminder. Please try again.");
                     }
                 });
             });

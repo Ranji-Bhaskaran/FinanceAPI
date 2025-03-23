@@ -121,6 +121,23 @@ def get_detailed_insights(request):
     
     return JsonResponse({"error": "Invalid request method."}, status=400)
 
+# ------------------------- Convert Currency using Friend's API -------------------------
+
+def convert_currency(amount, from_currency):
+    """Convert currency using friend's API"""
+    try:
+        api_url = "https://2430zel9za.execute-api.eu-west-1.amazonaws.com/prod/convert"
+        payload = {
+            "amount": amount,
+            "from_currency": from_currency,
+            "to_currency": "EUR"
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(api_url, json=payload, headers=headers, timeout=10)
+        response_data = response.json()
+        return response_data.get("converted_amount", amount)
+    except Exception as e:
+        return amount  # Return the original amount if conversion fails
 
 # ------------------------- Process Expense Inputs & Store CSV -------------------------
 
@@ -144,7 +161,8 @@ def process_inputs(request):
                 
                 for i in range(len(amounts)):
                     original_amount = float(amounts[i])
-                    writer.writerow([user_id, currency, original_amount, original_amount, categories[i], transaction_types[i], payment_methods[i], now()])
+                    converted_amount = convert_currency(original_amount, currency)
+                    writer.writerow([user_id, currency, original_amount, converted_amount, categories[i], transaction_types[i], payment_methods[i], now()])
 
             analysis = analyze_expenses(file_path)
             s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, f"upload/{filename}")
@@ -157,19 +175,24 @@ def process_inputs(request):
     
     return JsonResponse({"error": "Invalid request method."}, status=400)
 
+# ------------------------- Send Reminder via Twilio -------------------------
+
 def send_reminder(request):
     """Sends a reminder message via Twilio API"""
-    try:
-        # Twilio credentials
-        account_sid = settings.TWILIO_ACCOUNT_SID
-        auth_token = settings.TWILIO_AUTH_TOKEN
-        client = Client(account_sid, auth_token)
+    if request.method == "POST":
+        try:
+            # Twilio credentials from settings.py
+            account_sid = settings.TWILIO_ACCOUNT_SID
+            auth_token = settings.TWILIO_AUTH_TOKEN
+            client = Client(account_sid, auth_token)
 
-        message = client.messages.create(
-            body="Reminder: Check your recent expenses and budget!",
-            from_=settings.TWILIO_PHONE_NUMBER,
-            to=settings.MY_PHONE_NUMBER
-        )
-        return JsonResponse({"message": "Reminder sent successfully!"})
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+            # Send reminder message
+            message = client.messages.create(
+                body="Reminder: Check your recent expenses and budget!",
+                from_=settings.TWILIO_PHONE_NUMBER,
+                to=settings.MY_PHONE_NUMBER
+            )
+            return JsonResponse({"message": "Reminder sent successfully!"})
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    return JsonResponse({"error": "Invalid request method."}, status=400)
