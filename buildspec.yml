@@ -7,30 +7,29 @@ phases:
     commands:
       - echo Installing dependencies...
       - pip install --upgrade pip
-      - pip install -r requirements.txt  # Install dependencies from requirements.txt
-      - pip install pylint  # Install pylint for linting
+      - pip install -r requirements.txt
+      - pip install pylint
 
   pre_build:
     commands:
       - echo Pre-build phase...
-      - python --version  # Display the Python version for verification
+      - python --version
       - echo Running pylint on the project files...
-      - pylint $CODEBUILD_SRC_DIR/*.py  # Lint all Python files in the root directory
-      - pylint $CODEBUILD_SRC_DIR/realestate_project/*.py  # Lint Python files inside the realestate_project directory
+      - pylint expenseTracker
 
   build:
     commands:
       - echo Running tests...
-      - python3 manage.py test  # Run the Django tests
+      - python3 manage.py test
       - echo Applying migrations...
-      - python3 manage.py migrate  # Apply database migrations
+      - python3 manage.py migrate
       - echo Collecting static files...
-      - python3 manage.py collectstatic --noinput  # Collect static files for deployment
+      - python3 manage.py collectstatic --noinput
 
   post_build:
     commands:
-      - echo Post-build phase completed successfully!  # Confirm the post-build phase is complete
+      - echo Post-build phase completed successfully!
 
 artifacts:
   files:
-    - '**/*'  # Include all files in the build artifacts
+    - '**/*'
