@@ -11,11 +11,11 @@ phases:
       - pip install pylint
 
   pre_build:
-    commands:
-      - echo Pre-build phase...
-      - python --version
-      - echo Running pylint on the project files...
-      - pylint expenseTracker
+  commands:
+    - echo Pre-build phase...
+    - python --version
+    - echo Running pylint on the project files...
+    - find expenseTracker -name "*.py" | xargs pylint
 
   build:
     commands:
