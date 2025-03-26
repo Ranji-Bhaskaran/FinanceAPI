@@ -1,0 +1,36 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.9
+    commands:
+      - echo Installing dependencies...
+      - pip install --upgrade pip
+      - pip install -r requirements.txt  # Install dependencies from requirements.txt
+      - pip install pylint  # Install pylint for linting
+
+  pre_build:
+    commands:
+      - echo Pre-build phase...
+      - python --version  # Display the Python version for verification
+      - echo Running pylint on the project files...
+      - pylint $CODEBUILD_SRC_DIR/*.py  # Lint all Python files in the root directory
+      - pylint $CODEBUILD_SRC_DIR/realestate_project/*.py  # Lint Python files inside the realestate_project directory
+
+  build:
+    commands:
+      - echo Running tests...
+      - python3 manage.py test  # Run the Django tests
+      - echo Applying migrations...
+      - python3 manage.py migrate  # Apply database migrations
+      - echo Collecting static files...
+      - python3 manage.py collectstatic --noinput  # Collect static files for deployment
+
+  post_build:
+    commands:
+      - echo Post-build phase completed successfully!  # Confirm the post-build phase is complete
+
+artifacts:
+  files:
+    - '**/*'  # Include all files in the build artifacts

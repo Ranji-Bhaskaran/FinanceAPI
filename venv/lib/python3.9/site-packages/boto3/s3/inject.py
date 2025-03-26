@@ -11,7 +11,6 @@
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
 import copy as python_copy
-from functools import partial
 
 from botocore.exceptions import ClientError
 
@@ -22,29 +21,6 @@ from boto3.s3.transfer import (
     TransferConfig,
     create_transfer_manager,
 )
-
-try:
-    from botocore.context import with_current_context
-except ImportError:
-    from functools import wraps
-
-    def with_current_context(hook=None):
-        def decorator(func):
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
-
-            return wrapper
-
-        return decorator
-
-
-try:
-    from botocore.useragent import register_feature_id
-except ImportError:
-
-    def register_feature_id(feature_id):
-        pass
 
 
 def inject_s3_transfer_methods(class_attributes, **kwargs):
@@ -128,7 +104,6 @@ def object_summary_load(self, *args, **kwargs):
     self.meta.data = response
 
 
-@with_current_context(partial(register_feature_id, 'S3_TRANSFER'))
 def upload_file(
     self, Filename, Bucket, Key, ExtraArgs=None, Callback=None, Config=None
 ):
@@ -176,7 +151,6 @@ def upload_file(
         )
 
 
-@with_current_context(partial(register_feature_id, 'S3_TRANSFER'))
 def download_file(
     self, Bucket, Key, Filename, ExtraArgs=None, Callback=None, Config=None
 ):
@@ -394,7 +368,6 @@ def object_download_file(
     )
 
 
-@with_current_context(partial(register_feature_id, 'S3_TRANSFER'))
 def copy(
     self,
     CopySource,
@@ -606,7 +579,6 @@ def object_copy(
     )
 
 
-@with_current_context(partial(register_feature_id, 'S3_TRANSFER'))
 def upload_fileobj(
     self, Fileobj, Bucket, Key, ExtraArgs=None, Callback=None, Config=None
 ):
@@ -766,7 +738,6 @@ def object_upload_fileobj(
     )
 
 
-@with_current_context(partial(register_feature_id, 'S3_TRANSFER'))
 def download_fileobj(
     self, Bucket, Key, Fileobj, ExtraArgs=None, Callback=None, Config=None
 ):
