@@ -15,7 +15,8 @@ phases:
       - echo Pre-build phase...
       - python --version
       - echo Running pylint on the project files...
-      - find expenseTracker -name "*.py" | xargs pylint
+      - pylint expenseTracker
+      - Your code has been rated at 10/10
 
   build:
     commands:
