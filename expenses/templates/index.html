@@ -1,17 +1,177 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Finance Expense API</title>
-    {% load static %}
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <meta charset="UTF-8">
+  <title>Finance Expense API</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      animation: fadeInBody 1.5s ease-in;
+      background: linear-gradient(135deg, #43cea2, #185a9d);
+      position: relative;
+    }
+
+    #particles-js {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: -1;
+    }
+
+    .container {
+      text-align: center;
+      animation: fadeUp 1s ease-in-out;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 40px 30px;
+      border-radius: 20px;
+      backdrop-filter: blur(15px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 90%;
+      transition: transform 0.3s ease;
+      animation: popIn 0.8s ease-in-out, glowPulse 3s ease-in-out infinite;
+    }
+
+    .card:hover {
+      transform: translateY(-5px) scale(1.02);
+    }
+
+    h1 {
+      color: #ffffff;
+      margin-bottom: 20px;
+      font-size: 32px;
+      animation: pulseText 2s infinite;
+    }
+
+    p {
+      color: #f0f0f0;
+      margin-bottom: 25px;
+      font-size: 16px;
+    }
+
+    .upload-button {
+      text-decoration: none;
+      padding: 12px 24px;
+      background: linear-gradient(to right, #43cea2, #185a9d);
+      color: #fff;
+      border-radius: 8px;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+      animation: bounceIn 1.5s;
+    }
+
+    .upload-button:hover {
+      transform: scale(1.08);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    @keyframes fadeInBody {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.95); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes pulseText {
+      0%, 100% { color: #ffffff; }
+      50% { color: #ffefba; }
+    }
+
+    @keyframes glowPulse {
+      0%, 100% {
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+      50% {
+        box-shadow: 0 10px 40px rgba(255, 255, 255, 0.4);
+      }
+    }
+
+    @keyframes bounceIn {
+      0% { transform: scale(0.9); opacity: 0; }
+      50% { transform: scale(1.03); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <h1>💸 Finance Expense API</h1>
-            <p>Effortlessly upload your transaction details for comprehensive budgeting analysis and insights.</p>
-            <a href="{% url 'upload' %}" class="upload-button">📤 Upload Your Transactions</a>
-        </div>
+  <div id="particles-js"></div>
+
+  <div class="container">
+    <div class="card">
+      <lottie-player
+        src="https://assets9.lottiefiles.com/packages/lf20_zrqthn6o.json"
+        background="transparent"
+        speed="1"
+        style="width: 160px; height: 160px; margin: 0 auto 20px;"
+        loop
+        autoplay>
+      </lottie-player>
+
+      <h1>💸 Finance Expense API</h1>
+      <p>Effortlessly upload your transaction details for budgeting insights.</p>
+      <a href="{% url 'upload' %}" class="upload-button">📤 Upload Transactions</a>
     </div>
+  </div>
+
+  <script>
+    particlesJS("particles-js", {
+      particles: {
+        number: { value: 80 },
+        color: { value: ["#ffffff", "#43cea2", "#185a9d"] },
+        shape: { type: "circle" },
+        opacity: { value: 0.4 },
+        size: { value: 5, random: true },
+        line_linked: {
+          enable: true,
+          distance: 100,
+          color: "#ffffff",
+          opacity: 0.2,
+          width: 1
+        },
+        move: {
+          enable: true,
+          speed: 2,
+          direction: "none",
+          random: true,
+          out_mode: "bounce"
+        }
+      },
+      interactivity: {
+        detect_on: "canvas",
+        events: {
+          onhover: { enable: true, mode: "grab" },
+          onclick: { enable: true, mode: "repulse" }
+        },
+        modes: {
+          grab: { distance: 150, line_linked: { opacity: 0.5 } },
+          repulse: { distance: 100 }
+        }
+      },
+      retina_detect: true
+    });
+  </script>
 </body>
 </html>

@@ -1,78 +1,178 @@
+/* Fullscreen animated particle background */
+#particles-js {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+}
+
+/* General */
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f0f4f8;
+    font-family: 'Segoe UI', sans-serif;
     margin: 0;
     padding: 0;
+    background-color: #f0f8ff;
+    overflow-x: hidden;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #ffffffdd;
+    display: flex;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.navbar .logo {
+    font-weight: bold;
+    font-size: 1.4rem;
+    color: #2193b0;
+}
+
+.nav-links {
+    list-style: none;
+    display: flex;
+    gap: 1.5rem;
+}
+
+.nav-links li a {
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.nav-links li a:hover {
+    color: #2193b0;
+}
+
+/* Upload Section */
+.upload-wrapper {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 100vh;
+    padding: 4rem 1rem;
+    animation: fadeIn 1s ease;
 }
 
-h1, h3 {
-    text-align: center;
-    color: #333;
+.upload-wrapper h1 {
+    color: #ffffff;
+    margin-bottom: 2rem;
+    font-size: 2.5rem;
+    text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.2);
 }
 
 form {
     background: white;
     padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-    width: 80%;
-    max-width: 600px;
+    border-radius: 16px;
+    width: 90%;
+    max-width: 720px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+    animation: slideUp 0.7s ease;
 }
 
 label {
-    font-weight: bold;
+    font-weight: 600;
+    display: block;
+    margin-top: 1rem;
+    color: #333;
 }
 
-input[type="text"], input[type="number"], select {
-    padding: 8px;
-    margin: 8px 0;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    width: calc(100% - 20px);
-}
-
-button, input[type="submit"] {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    margin-top: 10px;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-button:hover, input[type="submit"]:hover {
-    background-color: #0056b3;
-}
-
-button[type="button"] {
-    margin-top: 10px;
-    background-color: #dc3545;
-}
-
-button[type="button"]:hover {
-    background-color: #b32d3a;
-}
-
-#expenses-container > div {
-    margin-bottom: 15px;
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
     padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin: 8px 0 16px;
+    font-size: 14px;
+}
+
+.expense-group {
+    background: #f9fafc;
     border: 1px solid #ddd;
-    border-radius: 5px;
-    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: 1rem;
+    animation: fadeIn 0.5s ease-in-out;
 }
 
-.upload-button {
-    margin-top: 20px;
+.expense-fields {
+    display: grid;
+    gap: 10px;
+}
+
+/* Buttons */
+button, input[type="submit"] {
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+}
+
+.remove-btn {
+    background-color: #dc3545;
+    color: white;
+    padding: 6px 12px;
+    margin-top: 10px;
+}
+
+.remove-btn:hover {
+    background-color: #b52a36;
+}
+
+.add-btn {
+    background-color: #17a2b8;
+    color: white;
+    padding: 10px 20px;
+    margin-top: 10px;
+}
+
+.add-btn:hover {
+    background-color: #138496;
+}
+
+.submit-btn {
     background-color: #28a745;
+    color: white;
+    padding: 12px 20px;
+    font-size: 16px;
+    margin-top: 20px;
 }
 
-.upload-button:hover {
+.submit-btn:hover {
     background-color: #218838;
+}
+
+.back-btn {
+    background-color: #6c757d;
+    color: white;
+    padding: 12px 20px;
+    margin-left: 10px;
+}
+
+.back-btn:hover {
+    background-color: #5a6268;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
