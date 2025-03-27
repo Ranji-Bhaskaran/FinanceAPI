@@ -46,6 +46,11 @@ TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 MY_PHONE_NUMBER = os.getenv('MY_PHONE_NUMBER')
 
 # Application definition
+
+# Dynamically resolve app path depending on project root
+CURRENT_DIR_NAME = BASE_DIR.name
+APP_PATH = 'expenses' if (BASE_DIR / 'expenses').exists() else f'{CURRENT_DIR_NAME}.expenses'
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -55,8 +60,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'corsheaders',
-    'expenseTracker/expenses',
+    APP_PATH,
 ]
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
