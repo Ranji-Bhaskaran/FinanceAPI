@@ -129,17 +129,23 @@ def convert_currency(amount, from_currency):
         return amount
 
 def process_inputs(request):
+    """Process expense inputs, generate CSV, and upload to S3"""
     if request.method == "POST":
         try:
-            user_id = request.POST.get("user_id")
-            currency = request.POST.get("currency", "EUR")
+            user_id = request.POST.get("user_id", "").strip()
+            currency = request.POST.get("currency", "EUR").strip()
+
             amounts = request.POST.getlist("amount[]")
             categories = request.POST.getlist("category[]")
             transaction_types = request.POST.getlist("transaction_type[]")
             payment_methods = request.POST.getlist("payment_method[]")
 
-            if not (user_id and amounts and categories and transaction_types and payment_methods):
-                return JsonResponse({"error": "Missing input fields."}, status=400)
+            # Sanity checks
+            if not user_id or not currency or not amounts:
+                return JsonResponse({"error": "Missing required fields."}, status=400)
+
+            if not (len(amounts) == len(categories) == len(transaction_types) == len(payment_methods)):
+                return JsonResponse({"error": "Mismatched input lengths."}, status=400)
 
             filename = f"expenses_{user_id}_{now().strftime('%Y%m%d_%H%M%S')}.csv"
             file_path = os.path.join("/tmp", filename)
@@ -147,18 +153,16 @@ def process_inputs(request):
             with open(file_path, "w", newline="") as file:
                 writer = csv.writer(file)
                 writer.writerow(["User ID", "Original Currency", "Original Amount", "Converted Amount (EUR)", "Category", "Transaction Type", "Payment Method", "Timestamp"])
+                
                 for i in range(len(amounts)):
-                    if not all([amounts[i], categories[i], transaction_types[i], payment_methods[i]]):
-                        continue
-                    original_amount = float(amounts[i])
-                    converted_amount = convert_currency(original_amount, currency)
-                    writer.writerow([user_id, currency, original_amount, converted_amount, categories[i], transaction_types[i], payment_methods[i], now()])
+                    try:
+                        original_amount = float(amounts[i])
+                        converted_amount = convert_currency(original_amount, currency)
+                        writer.writerow([user_id, currency, original_amount, converted_amount, categories[i], transaction_types[i], payment_methods[i], now()])
+                    except Exception as row_error:
+                        continue  # skip invalid rows safely
 
             analysis = analyze_expenses(file_path)
-            if "error" in analysis:
-                return JsonResponse({"error": analysis["error"]}, status=500)
-
-            s3_client.upload_file(file_path, settings.AWS_STORAGE_BUCKET_NAME, f"upload/{filename}")
             file_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/upload/{filename}"
 
             return render(request, "analysis.html", {"analysis": analysis, "file_url": file_url})
@@ -167,6 +171,7 @@ def process_inputs(request):
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method."}, status=400)
+
 
 def send_reminder(request):
     if request.method == "POST":
