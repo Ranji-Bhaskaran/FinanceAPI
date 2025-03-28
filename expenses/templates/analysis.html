@@ -127,26 +127,38 @@
 
     <div class="row">
       <div class="col-md-6">
-        <p><strong>Total Income:</strong> {{ analysis.total_income }} EUR</p>
-        <p><strong>Total Expense:</strong> {{ analysis.total_expense }} EUR</p>
-        <p><strong>Balance:</strong> {{ analysis.balance }} EUR</p>
-        <p><strong>Status:</strong>
-          <span class="badge badge-{% if analysis.status == 'Saved' %}success{% else %}danger{% endif %}">
-            {{ analysis.status }}
-          </span>
-        </p>
+        <p><strong>Total Income:</strong> {{ analysis.total_income|default:"0.00" }} EUR</p>
+        <p><strong>Total Expense:</strong> {{ analysis.total_expense|default:"0.00" }} EUR</p>
+        <p><strong>Balance:</strong> {{ analysis.balance|default:"0.00" }} EUR</p>
+
+        {% if analysis.status %}
+          <p><strong>Status:</strong>
+            <span class="badge badge-{% if analysis.status == 'Saved' %}success{% else %}danger{% endif %}">
+              {{ analysis.status }}
+            </span>
+          </p>
+        {% else %}
+          <p><strong>Status:</strong> <span class="badge badge-secondary">Unknown</span></p>
+        {% endif %}
       </div>
+
       <div class="col-md-6 text-center">
         <h3>Category-wise Distribution</h3>
-        <img class="img-fluid rounded border" src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
+        {% if analysis.chart %}
+          <img class="img-fluid rounded border" src="data:image/png;base64,{{ analysis.chart }}" alt="Expense Chart">
+        {% else %}
+          <p class="text-danger">Chart not available.</p>
+        {% endif %}
       </div>
     </div>
 
-    <div class="mt-4">
-      <p><strong>CSV Uploaded:</strong>
-        <a href="{{ file_url }}" target="_blank" class="btn btn-outline-success btn-sm">📄 View File</a>
-      </p>
-    </div>
+    {% if file_url %}
+      <div class="mt-4">
+        <p><strong>CSV Uploaded:</strong>
+          <a href="{{ file_url }}" target="_blank" class="btn btn-outline-success btn-sm">📄 View File</a>
+        </p>
+      </div>
+    {% endif %}
 
     <hr>
 
@@ -174,9 +186,9 @@
     $(document).ready(function () {
       $("#get-insights-btn").click(function () {
         $("#loading-spinner").show();
-        const total_expense = {{ analysis.total_expense }};
-        const target_expense = {{ analysis.total_income }};
-        const category_expenses = {{ analysis.category_expenses|safe }};
+        const total_expense = {{ analysis.total_expense|default:"0.0" }};
+        const target_expense = {{ analysis.total_income|default:"0.0" }};
+        const category_expenses = {{ analysis.category_expenses|safe|default:"{}" }};
 
         $.ajax({
           url: "{% url 'get_detailed_insights' %}",
