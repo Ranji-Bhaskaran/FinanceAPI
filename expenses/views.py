@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from twilio.rest import Client
 
 # AWS S3 Client (IAM Role-based access)
-s3_client = boto3.client('s3', region_name=settings.AWS_S3_REGION_NAME)
+s3_client = boto3.client('s3', region_name="eu-west-1")
 
 class ExpenseViewSet(viewsets.ModelViewSet):
     queryset = Expense.objects.all()
@@ -35,8 +35,7 @@ def upload_page(request):
             s3_client.upload_fileobj(
                 file,
                 settings.AWS_STORAGE_BUCKET_NAME,
-                file_key,
-                ExtraArgs={'ACL': 'public-read'})
+                file_key)
             file_url = f"{settings.AWS_S3_CUSTOM_DOMAIN}/{file_key}"
             return render(request, "upload.html", {"file_url": file_url})
         except Exception as e:
@@ -128,6 +127,8 @@ def convert_currency(amount, from_currency):
     except Exception:
         return amount
 
+import tempfile  # add this at the top if not already imported
+
 def process_inputs(request):
     """Process expense inputs, generate CSV, and upload to S3"""
     if request.method == "POST":
@@ -147,30 +148,54 @@ def process_inputs(request):
             if not (len(amounts) == len(categories) == len(transaction_types) == len(payment_methods)):
                 return JsonResponse({"error": "Mismatched input lengths."}, status=400)
 
+            # Filename and S3 Key
             filename = f"expenses_{user_id}_{now().strftime('%Y%m%d_%H%M%S')}.csv"
-            file_path = os.path.join("/tmp", filename)
+            s3_key = f"upload/{filename}"
 
-            with open(file_path, "w", newline="") as file:
-                writer = csv.writer(file)
-                writer.writerow(["User ID", "Original Currency", "Original Amount", "Converted Amount (EUR)", "Category", "Transaction Type", "Payment Method", "Timestamp"])
-                
+            # Create temp CSV file
+            with tempfile.NamedTemporaryFile(mode="w+", delete=False, newline="") as temp_csv:
+                writer = csv.writer(temp_csv)
+                writer.writerow([
+                    "User ID", "Original Currency", "Original Amount",
+                    "Converted Amount (EUR)", "Category", "Transaction Type",
+                    "Payment Method", "Timestamp"
+                ])
                 for i in range(len(amounts)):
                     try:
                         original_amount = float(amounts[i])
                         converted_amount = convert_currency(original_amount, currency)
-                        writer.writerow([user_id, currency, original_amount, converted_amount, categories[i], transaction_types[i], payment_methods[i], now()])
-                    except Exception as row_error:
-                        continue  # skip invalid rows safely
+                        writer.writerow([
+                            user_id, currency, original_amount, converted_amount,
+                            categories[i], transaction_types[i], payment_methods[i], now()
+                        ])
+                    except Exception as row_err:
+                        continue  # skip invalid rows
+                temp_csv_path = temp_csv.name  # capture the temp path
 
-            analysis = analyze_expenses(file_path)
-            file_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/upload/{filename}"
+            # Upload to S3
+            try:
+                s3_client.upload_file(
+                    temp_csv_path,
+                    settings.AWS_STORAGE_BUCKET_NAME,
+                    s3_key
+                )
+            except Exception as upload_error:
+                return JsonResponse({"error": f"Failed to upload to S3: {upload_error}"}, status=500)
 
-            return render(request, "analysis.html", {"analysis": analysis, "file_url": file_url})
+            # Analyze and return
+            analysis = analyze_expenses(temp_csv_path)
+            file_url = f"https://{settings.AWS_STORAGE_BUCKET_NAME}.s3.{settings.AWS_S3_REGION_NAME}.amazonaws.com/{s3_key}"
+
+            return render(request, "analysis.html", {
+                "analysis": analysis,
+                "file_url": file_url
+            })
 
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
 
     return JsonResponse({"error": "Invalid request method."}, status=400)
+
 
 
 def send_reminder(request):
