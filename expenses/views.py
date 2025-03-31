@@ -4,6 +4,7 @@ import boto3
 import json
 import io
 import base64
+import random
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ from .models import Expense
 from .serializers import ExpenseSerializer
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
+from django.views.decorators.cache import never_cache
 from twilio.rest import Client
 
 # AWS S3 Client (IAM Role-based access)
@@ -197,15 +199,22 @@ def process_inputs(request):
 
     return JsonResponse({"error": "Invalid request method."}, status=400)
 
+@never_cache
 def savings_plan_page(request):
     if request.method == "POST":
         current_savings = request.POST.get("current_savings", "0.00")
-        return render(request, "savingsplan.html", {"current_savings": current_savings})
-    return redirect("home")
+    else:
+        current_savings = "0.00"
+
+    return render(request, "savingsplan.html", {
+        "current_savings": current_savings,
+        "quote": get_financial_quote()
+    })
 
 
 @csrf_exempt
 @require_POST
+@never_cache
 def get_savings_plan(request):
     try:
         goal_amount = request.POST.get("goal_amount")
@@ -215,7 +224,8 @@ def get_savings_plan(request):
         if not goal_amount or not current_savings or not goal_date:
             return render(request, "savingsplan.html", {
                 "error": "All fields are required.",
-                "current_savings": current_savings
+                "current_savings": current_savings,
+                "quote": get_financial_quote()
             })
 
         api_url = "https://s5n43ij2al.execute-api.eu-west-1.amazonaws.com/prod/plan-savings"
@@ -231,14 +241,27 @@ def get_savings_plan(request):
 
         return render(request, "savingsplan.html", {
             "plan": plan_data,
-            "current_savings": current_savings
+            "current_savings": current_savings,
+            "quote": get_financial_quote()
         })
 
     except Exception as e:
         return render(request, "savingsplan.html", {
             "error": str(e),
-            "current_savings": request.POST.get("current_savings", "0.00")
+            "current_savings": request.POST.get("current_savings", "0.00"),
+            "quote": get_financial_quote()
         })
+
+
+def get_financial_quote():
+    quotes = [
+        "Start where you are. Use what you have. Do what you can. — Arthur Ashe",
+        "Do not save what is left after spending, but spend what is left after saving. — Warren Buffett",
+        "A budget is telling your money where to go instead of wondering where it went. — Dave Ramsey",
+        "The goal isn't more money. The goal is living life on your terms. — Chris Brogan",
+        "An investment in knowledge pays the best interest. — Benjamin Franklin"
+    ]
+    return random.choice(quotes)
 
 
 def send_reminder(request):
