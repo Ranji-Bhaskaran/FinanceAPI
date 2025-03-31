@@ -7,7 +7,7 @@ import base64
 import requests
 import pandas as pd
 import matplotlib.pyplot as plt
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.utils.timezone import now
 from django.conf import settings
@@ -15,6 +15,7 @@ from rest_framework import viewsets
 from .models import Expense
 from .serializers import ExpenseSerializer
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from twilio.rest import Client
 
 # AWS S3 Client (IAM Role-based access)
@@ -196,6 +197,48 @@ def process_inputs(request):
 
     return JsonResponse({"error": "Invalid request method."}, status=400)
 
+def savings_plan_page(request):
+    if request.method == "POST":
+        current_savings = request.POST.get("current_savings", "0.00")
+        return render(request, "savingsplan.html", {"current_savings": current_savings})
+    return redirect("home")
+
+
+@csrf_exempt
+@require_POST
+def get_savings_plan(request):
+    try:
+        goal_amount = request.POST.get("goal_amount")
+        current_savings = request.POST.get("current_savings")
+        goal_date = request.POST.get("goal_date")
+
+        if not goal_amount or not current_savings or not goal_date:
+            return render(request, "savingsplan.html", {
+                "error": "All fields are required.",
+                "current_savings": current_savings
+            })
+
+        api_url = "https://s5n43ij2al.execute-api.eu-west-1.amazonaws.com/prod/plan-savings"
+        payload = {
+            "goal_amount": float(goal_amount),
+            "current_savings": float(current_savings),
+            "goal_date": goal_date
+        }
+        headers = {"Content-Type": "application/json"}
+
+        response = requests.post(api_url, json=payload, headers=headers, timeout=10)
+        plan_data = response.json()
+
+        return render(request, "savingsplan.html", {
+            "plan": plan_data,
+            "current_savings": current_savings
+        })
+
+    except Exception as e:
+        return render(request, "savingsplan.html", {
+            "error": str(e),
+            "current_savings": request.POST.get("current_savings", "0.00")
+        })
 
 
 def send_reminder(request):

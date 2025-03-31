@@ -171,6 +171,14 @@
     </div>
 
     <div id="detailed-insights" class="mt-4"></div>
+    <!-- Savings Plan -->
+    <div class="text-center mt-4">
+      <form method="post" action="{% url 'savings_plan_page' %}">
+        {% csrf_token %}
+        <input type="hidden" name="current_savings" value="{{ analysis.total_expense|default:'0.00' }}">
+        <button type="submit" class="btn btn-success btn-lg">💰 Plan Your Savings</button>
+      </form>
+    </div>
 
     <!-- Reminder -->
     <div class="text-center mt-4">
@@ -205,6 +213,7 @@
               <p><strong>Total Target:</strong> ${result.total_target} EUR</p>
               <p><strong>Result:</strong> ${result.result} EUR</p>
               <p><strong>Suggestion:</strong> ${result.cut_suggestion || 'No suggestions available.'}</p>
+              <p><strong>Funny_Tip:</strong> ${result.funny_tip || 'No tips available.'}</p>
             `);
             $('html, body').animate({ scrollTop: $("#detailed-insights").offset().top }, 800);
           },
