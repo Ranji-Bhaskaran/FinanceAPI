@@ -21,7 +21,7 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = [
     'x23271957expcheck2-env.eba-hp8mvu9y.eu-west-1.elasticbeanstalk.com',
     '3cc29e363b6347aa8d4a74be9d3b7cf8.vfs.cloud9.eu-west-1.amazonaws.com',
-    '172.31.39.249'
+    '172.31.39.249','172.31.32.161'
 ]
 
 CSRF_TRUSTED_ORIGINS = [
